@@ -27,7 +27,7 @@ Route::prefix('v1')->group(function () {
         // Route::apiResource('users', UserController::class);
         // Users
         Route::get('/users', [UserController::class, 'index']);
-        Route::get('/users/check-if-user-exist', [UserController::class, 'checkIfUserExist']);
+        Route::get('/users/get-user-by-phone', [UserController::class, 'getUserByPhone']);
         Route::get('/users/{user}', [UserController::class, 'show']);
         Route::post('/users', [UserController::class, 'store']);
         Route::put('/users/{user}', [UserController::class, 'update']);

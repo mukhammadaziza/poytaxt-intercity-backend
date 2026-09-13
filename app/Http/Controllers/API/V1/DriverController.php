@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API\V1;
 
+use App\Actions\API\V1\Driver\CreateDriverAction;
 use App\Actions\API\V1\Driver\GetDriverAction;
 use App\Actions\API\V1\Driver\GetDriverOrdersAction;
 use App\Actions\API\V1\Driver\GetDriversAction;
@@ -20,10 +21,16 @@ use App\Models\User;
 use App\Services\API\V1\DriverService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class DriverController extends Controller
 {
+    /**
+     * Get all drivers
+     * 
+     * @param IndexDriverRequest $indexDriverRequest
+     * @param GetDriversAction $getDriversAction
+     * @return JsonResponse
+     */
     public function index(
         IndexDriverRequest $indexDriverRequest,
         GetDriversAction $getDriversAction
@@ -34,33 +41,38 @@ class DriverController extends Controller
         return DriverResource::collection($drivers)->response();
     }
 
+    /**
+     * Get all drivers
+     * 
+     * @param StoreDriverRequest $storeDriverRequest,
+     * @param CreateDriverAction $createDriverAction
+     * @return JsonResponse
+     */
     public function store(
         StoreDriverRequest $storeDriverRequest,
-        DriverService $driverService
+        CreateDriverAction $createDriverAction
     ): JsonResponse
     {
-        Log::info('sd');
-        
-        $driver = $driverService->createDriver($storeDriverRequest->validated());
+        $driver = $createDriverAction->execute($storeDriverRequest->validated());
 
         return response()->json([
             'message' => 'Driver created successfully.',
-            'driver' => $driver,
+            'data' => new DriverResource($driver),
         ], 201);
-
     }
 
     /**
-     * 
+     * Get single driver
      */
     public function show(
         ShowDriverRequest $showDriverRequest, 
         GetDriverAction $getDriverAction,
-        User $driver)
+        User $driver
+    ): JsonResponse
     {
         $driver = $getDriverAction->execute($driver);
 
-        return new DriverResource($driver);
+        return new DriverResource($driver)->response();
     }
 
     public function update(

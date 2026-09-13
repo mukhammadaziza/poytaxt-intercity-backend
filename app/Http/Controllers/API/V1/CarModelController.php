@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API\V1;
 
+use App\Actions\API\V1\CarModel\GetCarModelsAction;
 use App\Actions\API\V1\CarModel\StoreCarModelAction;
 use App\Actions\API\V1\CarModels\CreateCarModelAction;
 use App\Actions\API\V1\CarModels\DeleteCarModelAction;
@@ -24,9 +25,13 @@ class CarModelController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(IndexCarModelRequest $indexCarModelRequest): JsonResource
+    public function index(
+        IndexCarModelRequest $indexCarModelRequest,
+        GetCarModelsAction $getCarModelsAction
+    ): JsonResponse
     {
-        return CarModelsResource::collection(CarModel::all());
+        $carModels = $getCarModelsAction->execute();
+        return CarModelsResource::collection(CarModel::all())->response();
     }
 
     /**

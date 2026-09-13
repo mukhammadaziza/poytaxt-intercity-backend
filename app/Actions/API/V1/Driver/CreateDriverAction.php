@@ -8,7 +8,6 @@ use App\Models\Car;
 use App\Models\DriverProfile;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 
@@ -18,22 +17,29 @@ class CreateDriverAction
      * @param array $data
      * @return User
      */
-    public function execute(array $data)
+    public function execute(array $data): User
     {
         return DB::transaction(function () use ($data) {
 
             $user = User::query()
                 ->where('phone', $data['phone'])
                 ->first();
-            Log::info($user);
+            $car = Car::query()
+                ->where('plate_number', $data['plate_number'])
+                ->first();
             
             if ($user && $user->hasRole('Driver')) {
-                Log::info($user);
-
                 throw ValidationException::withMessages([
-                    'phone' => 'This user is already a driver. Check existing driver profile',
+                    'phone' => 'This user is already existing driver. 
+                            You cannot create driver with this phone number.
+                            Check driver profile with phone ' . $data['phone']
                 ]);
-
+            } elseif($car){
+                throw ValidationException::withMessages([
+                    'plate_number' => 'This plate number is already registered. 
+                        You cannot create driver with this plate number.
+                        Check driver profile with phone ' . $data['plate_number']
+                ]);
             } else {
                 $driver = User::create([
                     'name' => $data['name'],

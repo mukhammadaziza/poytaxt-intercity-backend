@@ -2,153 +2,167 @@
 
 namespace App\Http\Controllers\API\V1;
 
+use App\Actions\API\V1\User\ActivateUserAction;
 use App\Actions\API\V1\User\CheckIfUserExistAction;
-use App\Enums\UserStatus;
+use App\Actions\API\V1\User\CreateUserAction;
+use App\Actions\API\V1\User\DeactivateUserAction;
+use App\Actions\API\V1\User\GetAllUsersAction;
+use App\Actions\API\V1\User\GetUserAction;
+use App\Actions\API\V1\User\UpdateUserAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\API\V1\Users\ActivateUserRequest;
 use App\Http\Requests\API\V1\Users\CheckIfUserExistRequest;
+use App\Http\Requests\API\V1\Users\DeactivateUserRequest;
+use App\Http\Requests\API\V1\Users\IndexUserRequest;
+use App\Http\Requests\API\V1\Users\ShowUserRequest;
+use App\Http\Requests\API\V1\Users\StoreUserRequest;
+use App\Http\Requests\API\V1\Users\UpdateUserRequest;
 use App\Http\Resources\API\V1\UserResource;
-use App\Models\Car;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
 
 class UserController extends Controller
 {
-    public function index()
+    /**
+     * Get all users (except driver)
+     * 
+     * @param IndexUserRequest $indexUserRequest
+     * @param GetAllUsersAction $getAllUsersAction
+     * @return JsonResponse
+     */
+    public function index(
+        IndexUserRequest $indexUserRequest,
+        GetAllUsersAction $getAllUsersAction
+    ): JsonResponse
     {
-        $users = User::orderBy('created_at', 'desc')->get();
-        return UserResource::collection($users);
+        $users = $getAllUsersAction->execute();
+
+        return UserResource::collection($users)->response();
     }
 
-    public function store(Request $request)
+    /**
+     * Store user (except driver)
+     * 
+     * @param StoreUserRequest $storeUserRequest
+     * @param CreateUserAction $createUserAction
+     * @return JsonResponse
+     */
+    public function store(
+        StoreUserRequest $storeUserRequest,
+        CreateUserAction $createUserAction
+    ): JsonResponse
     {
-        // dd($request->all());
-        // Log::info($request->all());
-        $validated = $request->validate([
-            'name' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|string',
-            'role' => 'required',
-            'car_model_id' => ['nullable'],
-            'plate_number' => ['nullable'],
-            'production_year' => ['nullable'],
-            ]);
-        // Log::info($validated['role']);
-            
-        // dd($request->all());  // ← logs to storage/logs/laravel.log
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => $validated['password']
-        ]);
-
-        $user->assignRole($validated['role']);
-
-        if ($validated['role'] === 'Driver') {
-            Car::create([
-                'driver_id' => $user->id,
-                'car_model_id' => $validated['car_model_id'],
-                'plate_number' => $validated['plate_number'],
-                'production_year' => $validated['production_year'],
-            ]);
-        }
+        $user = $createUserAction->execute($storeUserRequest->validated());
 
         return response()->json([
             'message' => 'User created successfully.',
-            'user' => $user,
+            'data' => new UserResource($user)
         ], 201);
-
     }
 
-    public function show(User $user)
+    /**
+     * Show user
+     * 
+     * @param ShowUserRequest $showUserRequest
+     * @param GetUserAction $getUserAction
+     * @param User $user
+     * @return JsonResponse
+     */
+    public function show(
+        ShowUserRequest $showUserRequest,
+        GetUserAction $getUserAction,
+        User $user
+    ): JsonResponse
     {
-        return new UserResource($user);
-    }
+        $user = $getUserAction->execute($user);
 
-    public function update(Request $request, User $user)
-    {
-        $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email,' . $user->id, // ignore current user's email
-            'password' => 'nullable|string',
-            'role'     => 'nullable',
+        return response()->json([
+            'data' => new UserResource($user),
         ]);
+    }
 
-        // only update password if provided
-        if (!empty($validated['password'])) {
-            $validated['password'] = bcrypt($validated['password']);
-        } else {
-            unset($validated['password']); // remove it so current password stays
-        }
-
-        $user->update($validated);
+    /**
+     * Update user
+     * 
+     * @param UpdateUserRequest $updateUserRequest
+     * @param UpdateUserAction $updateUserAction
+     * @param User $user
+     * @return JsonResponse
+     */
+    public function update(
+        UpdateUserRequest $updateUserRequest,
+        UpdateUserAction $updateUserAction,
+        User $user
+    ): JsonResponse
+    {
+        
+        $user = $updateUserAction->execute($updateUserRequest->validated(), $user);
 
         return response()->json([
             'message' => 'User updated successfully.',
-            'user'    => $user,
+            'data'    => new UserResource($user),
         ], 200);
     }
 
-    public function deactivateUser(User $user)
+    /**
+     * Deactivate user
+     * 
+     * @param DeactivateUserRequest $deactivateUserRequest
+     * @param DeactivateUserAction $deactivateUserAction
+     * @param User $user
+     * @return JsonResponse
+     */
+    public function deactivateUser(
+        DeactivateUserRequest $deactivateUserRequest,
+        DeactivateUserAction $deactivateUserAction,
+        User $user
+    ): JsonResponse
     {
-        $user->update([
-            'status' => UserStatus::NonActive->value
-        ]);
-        
-        // writing to driver_logs table when driver is deactivated but when regular dispatcher deactivated where it is gong to be written and how can I know that it is driver deactivated or regular disatcher if he has both roles
+        $user = $deactivateUserAction->execute($user);   
 
         return response()->json([
-            'message' => 'User deactivated successfully'
+            'message' => 'User deactivated successfully',
+            'data' => new UserResource($user)
         ], 200);
     }
 
-    public function activateUser(User $user)
+    /**
+     * Activate user
+     * 
+     * @param ActivateUserRequest $activateUserRequest
+     * @param ActivateUserAction $activateUserAction
+     * @param User $user
+     * @return JsonResponse
+     */
+    public function activateUser(
+        ActivateUserRequest $activateUserRequest,
+        ActivateUserAction $activateUserAction,
+        User $user
+    ): JsonResponse
     {
-        $user->update([
-            'status' => UserStatus::Active->value
-        ]);
-        
+        $user = $activateUserAction->execute($user);
+
         return response()->json([
-            'message' => 'User activated successfully'
+            'message' => 'User activated successfully',
+            'data' => new UserResource($user)
         ], 200);
     }
 
-    public function blockUserByDate(Request $request, User $user)
-    {
-        $validated = $request->validate([
-            'comment' => ['required'],
-            'blocked_until' => ['required']
-        ]);
-
-        $user->update([
-            'status' => UserStatus::Blocked->value
-        ]);
-        
-        return response()->json([
-            'message' => 'User blocked successfully'
-        ], 200);
-    }
-
-    public function unblockUser(User $user)
-    {
-        $user->update([
-            'status' => UserStatus::Active->value
-        ]);
-        
-        return response()->json([
-            'message' => 'User unblocked successfully'
-        ], 200);
-    }
-
-    public function checkIfUserExist(
+    /**
+     * Get user by phone number
+     * @param CheckIfUserExistRequest $checkIfUserExistRequest
+     * @param CheckIfUserExistAction $checkIfUserExistAction
+     * @return JsonResponse
+     */
+    public function getUserByPhone(
         CheckIfUserExistRequest $checkIfUserExistRequest,
         CheckIfUserExistAction $checkIfUserExistAction
-    )
+    ): JsonResponse
     {
         $user = $checkIfUserExistAction->execute($checkIfUserExistRequest->validated());
         
         return response()->json([
-            'user' => $user
+            'user' => new UserResource($user)
         ], 200);
     }
 }

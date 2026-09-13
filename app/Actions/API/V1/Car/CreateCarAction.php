@@ -1,22 +1,14 @@
 <?php
 
-namespace App\Actions\API\V1\Cars;
+namespace App\Actions\API\V1\Car;
 
 use App\Models\Car;
 use Illuminate\Support\Facades\DB;
 
 class CreateCarAction
 {
-    /**
-     * Create a new class instance.
-     */
-    public function __construct()
-    {
-        //
-    }
-
      /**
-     * 
+     * @param array $data
      */
     public function execute(array $data)
     {

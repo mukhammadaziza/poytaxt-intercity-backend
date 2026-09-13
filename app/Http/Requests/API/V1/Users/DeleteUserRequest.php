@@ -1,18 +1,18 @@
 <?php
 
-namespace App\Http\Requests\API\V1\CarModels;
+namespace App\Http\Requests\API\V1\Users;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreCarModelRequest extends FormRequest
+class DeleteUserRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true;
+        return false;
     }
 
     /**
@@ -23,9 +23,7 @@ class StoreCarModelRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string'],
-            'seats' => ['required', 'integer'],
-            'description' => ['nullable'],
+            //
         ];
     }
 }

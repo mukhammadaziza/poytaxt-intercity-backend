@@ -1,20 +1,13 @@
 <?php
 
-namespace App\Actions\API\V1\Cars;
+namespace App\Actions\API\V1\Car;
 
 use App\Models\Car;
 use Illuminate\Support\Facades\DB;
 
 class DeleteCarAction
 {
-    /**
-     * Create a new class instance.
-     */
-    public function __construct()
-    {
-        //
-    }
-
+  
     /**
      * @param Car $car
      * @return void
